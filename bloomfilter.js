@@ -42,6 +42,10 @@
     }
   }
 
+  BloomFilter.prototype.clone = function() {
+      return new BloomFilter(this.buckets.slice(), this.k);
+  };
+
   // See http://willwhim.wpengine.com/2011/09/03/producing-n-hash-functions-by-hashing-only-once/
   BloomFilter.prototype.locations = function(v) {
     var k = this.k,
@@ -57,6 +61,10 @@
     return r;
   };
 
+  BloomFilter.prototype.getLocations = function(v) {
+    return this.locations(v).slice();
+  };
+
   BloomFilter.prototype.add = function(v) {
     var l = this.locations(v + ""),
         k = this.k,
@@ -65,7 +73,12 @@
   };
 
   BloomFilter.prototype.test = function(v) {
-    var l = this.locations(v + ""),
+    var l = this.locations(v + "");
+    return this.testByLocations(l);
+  };
+
+  BloomFilter.prototype.testByLocations = function(locations) {
+    var l = locations,
         k = this.k,
         buckets = this.buckets;
     for (var i = 0; i < k; ++i) {
