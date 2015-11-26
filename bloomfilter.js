@@ -20,7 +20,10 @@
   // 32.  *k* specifies the number of hashing functions.
   function BloomFilter(m, k) {
     var a;
-    if (typeof m !== "number") a = m, m = a.length * 32;
+    if (typeof m !== "number") {
+      a = m;
+      m = a.length * 32;
+    }
 
     var n = Math.ceil(m / 32),
         i = -1;
@@ -30,20 +33,25 @@
     if (typedArrays) {
       var kbytes = 1 << Math.ceil(Math.log(Math.ceil(Math.log(m) / Math.LN2 / 8)) / Math.LN2),
           array = kbytes === 1 ? Uint8Array : kbytes === 2 ? Uint16Array : Uint32Array,
-          kbuffer = new ArrayBuffer(kbytes * k),
-          buckets = this.buckets = new Int32Array(n);
-      if (a) while (++i < n) buckets[i] = a[i];
+          kbuffer = new ArrayBuffer(kbytes * k);
       this._locations = new array(kbuffer);
-    } else {
-      var buckets = this.buckets = [];
-      if (a) while (++i < n) buckets[i] = a[i];
-      else while (++i < n) buckets[i] = 0;
-      this._locations = [];
     }
+    else
+      this._locations = [];
+
+    this.buckets = a
+          ? (a instanceof Array
+              ? a.slice()
+              // in older nodejs typed arrays don't have slice
+              // and in node 10.x.x slice does not copy, but this seems
+              // to work.
+              : new a.constructor(a)
+            )
+          : [];
   }
 
   BloomFilter.prototype.clone = function() {
-      return new BloomFilter(this.buckets.slice(), this.k);
+      return new BloomFilter(this.buckets, this.k);
   };
 
   // See http://willwhim.wpengine.com/2011/09/03/producing-n-hash-functions-by-hashing-only-once/
@@ -62,7 +70,13 @@
   };
 
   BloomFilter.prototype.getLocations = function(v) {
-    return this.locations(v).slice();
+    var l = this.locations(v);
+    return (l instanceof Array
+                      ? l.slice()
+                      // in older nodejs typed arrays don't have slice
+                      // and in node 10.x.x slice does not copy
+                      : new l.constructor(l)
+            );
   };
 
   BloomFilter.prototype.add = function(v) {
